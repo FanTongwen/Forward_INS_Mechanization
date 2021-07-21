@@ -90,7 +90,6 @@ namespace INS {
 		//Eigen::Vector3d zeta1_t2;
 		//Eigen::Quaterniond q_nn_t2_t1;
 		//Eigen::Quaterniond q_ee_t1_t2;
-
 		Eigen::Quaterniond q_delta_theta;		//从tk-1到tk的ne系位置变化
 		Eigen::Vector3d delta_theta;			//q_delta_theta对应的等效旋转矢量
 		Eigen::Quaterniond q_delta_halftheta;	//0.5theta的旋转矢量对应的四元数
@@ -207,7 +206,8 @@ namespace INS {
 		true_geo_angle = (beta_3 * h_mid * sin(2.0 * latitude_mid)) / g_Lh;
 		//g_n_mid << -g_Lh * sin(true_geo_angle), 0, g_Lh * cos(true_geo_angle);//严恭敏. 式(3-2-25)
 		//g_n_mid << -g_Lh * sin(true_geo_angle), 0, g_Lh;//严恭敏. 式(3-2-25)
-		g_n_mid = 0.99999999973*getG(Eigen::Vector3d(latitude_mid, longitude_mid, h_mid));
+		//g_n_mid = 0.99999999973*getG(Eigen::Vector3d(latitude_mid, longitude_mid, h_mid));
+		g_n_mid = getG(Eigen::Vector3d(latitude_mid, longitude_mid, h_mid));
 		// 根据中间时刻重力求式(2.53)
 		delta_v_gcor = (g_n_mid - (2.0 * omega_ie_n_mid + omega_en_n_mid).cross(NED_vec_mid)) * INS_T;//Eun-Hwan. 式(2.53)
 		// 速度更新 式2.47
@@ -256,15 +256,27 @@ namespace INS {
 		state_t2.q_ne = NED2Quart(state_t2.GEO_eb);
 	}
 
-	void mechanization::mechanizationUpdate(IMU_data& data)
+	void mechanization::mechanizationUpdate(const IMU_data& data)
 	{
 		imudata_t2 = data;
+		INS_T = imudata_t2.timestamp - imudata_t1.timestamp;
 		velocityUpdate();
 		positionUpdate();
 		attitudeUpdate();
 		state_t2.timestamp = imudata_t2.timestamp;
+
 		imudata_t1 = imudata_t2;
 		state_t1 = state_t2;
+	}
+
+	void mechanization::mechanizationinterUpdate(const IMU_data& data)
+	{
+		imudata_t2 = data;
+		INS_T = imudata_t2.timestamp - imudata_t1.timestamp;
+		velocityUpdate();
+		positionUpdate();
+		attitudeUpdate();
+		state_t2.timestamp = imudata_t2.timestamp;
 	}
 	m_State mechanization::getstate()
 	{

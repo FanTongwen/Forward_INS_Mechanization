@@ -47,7 +47,8 @@ namespace INS {
 		void positionUpdate();
 		void attitudeUpdate();
 	public:
-		void mechanizationUpdate(IMU_data& data);
+		void mechanizationUpdate(const IMU_data& data);
+		void mechanizationinterUpdate(const IMU_data &data);
 		m_State getstate();
 	private:
 		//Eigen::Vector3d gyro_t2;				//陀螺仪tk输出
@@ -67,14 +68,18 @@ namespace INS {
 		//Eigen::Vector3d NED_vec;				//载体相对于地球的速度在NED坐标系的投影
 		//Eigen::Vector3d NED_vec_t1;				//n系下tk-1时刻的速度向量坐标
 		Eigen::Vector3d NED_vec_mid;			//n系下中间时刻的速度向量坐标
-		Eigen::Vector3d delta_v;
+		
 		Eigen::Vector3d omega_ie_n_mid;			//n系下中间时刻计算的ie角速度
 		Eigen::Vector3d omega_en_n_mid;			//n系下中间时刻计算的en角速度
-		// 
+		//
+	protected:
 		m_State state_t2;
 		m_State state_t1;
 		//
 		IMU_data imudata_t1;
 		IMU_data imudata_t2;
+		Eigen::Vector3d delta_v;
+		//
+		double INS_T;
 	};
 };
