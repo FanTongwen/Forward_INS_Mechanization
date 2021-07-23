@@ -82,17 +82,21 @@ namespace INS
 
         F_21_21 = F_21_21.setZero();
         F_21_21.block<3, 3>(0, 0) = F_rr;
-        F_21_21.block<3, 3>(3, 0) = F_vr;
         F_21_21.block<3, 3>(0, 3) = I_3_3;
+
+        F_21_21.block<3, 3>(3, 0) = F_vr;
         F_21_21.block<3, 3>(3, 3) = F_vv;
+        F_21_21.block<3, 3>(3, 6) = Vector2CrossMatrix(C_bn * f_b);
+        F_21_21.block<3, 3>(3, 12) = C_bn;
+        F_21_21.block<3, 3>(3, 18) = C_bn * (f_b.asDiagonal());
+
         F_21_21.block<3, 3>(6, 0) = F_phir;
         F_21_21.block<3, 3>(6, 3) = F_phiv;
-        F_21_21.block<3, 3>(3, 6) = Vector2CrossMatrix(C_bn * f_b);
-        F_21_21.block<3, 3>(6, 9) = -C_bn;
-        F_21_21.block<3, 3>(3, 12) = C_bn;
-        F_21_21.block<3, 3>(6, 15) = -C_bn * (omega_ib_b.asDiagonal());
-        F_21_21.block<3, 3>(3, 18) = C_bn * (f_b.asDiagonal());
         F_21_21.block<3, 3>(6, 6) = -(Vector2CrossMatrix(omega_in_n));
+        F_21_21.block<3, 3>(6, 9) = -C_bn;
+        F_21_21.block<3, 3>(6, 15) = -C_bn * (omega_ib_b.asDiagonal());
+        
+        
         F_21_21.block<3, 3>(9, 9) = (-1.0 / Tgb) * I_3_3;
         F_21_21.block<3, 3>(12, 12) = (-1.0 / Tab) * I_3_3;
         F_21_21.block<3, 3>(15, 15) = (-1.0 / Tgs) * I_3_3;
@@ -202,27 +206,27 @@ namespace INS
     //     kal_mat_t2.x_21_1.block<3, 1>(6, 0).setZero();
     // }
 
-    // void intergrated::PosErrorFeedback()
-    // {
-    //     double R_M;
-    //     double R_N;
+    void intergrated::PosErrorFeedback()
+    {
+        double R_M;
+        double R_N;
 
-    //     Eigen::Vector3d delta_r;
-    //     Eigen::Vector3d DR_inv_3_1;
-    //     Eigen::Matrix3d DR_inv_3_3;                 // DR^-1用于
+        Eigen::Vector3d delta_r;
+        Eigen::Vector3d DR_inv_3_1;
+        Eigen::Matrix3d DR_inv_3_3;                 // DR^-1用于
 
-    //     delta_r = kal_mat_t2.x_21_1.block<3, 1>(0, 0);
+        delta_r = kal_mat_t2.x_21_1.block<3, 1>(0, 0);
 
-    //     R_M = getRM(state_t2.GEO_eb(Latitude));
-    //     R_N = getRN(state_t2.GEO_eb(Latitude));
-    //     DR_inv_3_1 << 1.0 / (R_M + state_t2.GEO_eb(Height)), 1.0 / ((R_N + state_t2.GEO_eb(Height)) * cos(state_t2.GEO_eb(Latitude))), -1.0;
-    //     DR_inv_3_3 = DR_inv_3_1.asDiagonal();
+        R_M = getRM(state_t2.GEO_eb(Latitude));
+        R_N = getRN(state_t2.GEO_eb(Latitude));
+        DR_inv_3_1 << 1.0 / (R_M + state_t2.GEO_eb(Height)), 1.0 / ((R_N + state_t2.GEO_eb(Height)) * cos(state_t2.GEO_eb(Latitude))), -1.0;
+        DR_inv_3_3 = DR_inv_3_1.asDiagonal();
 
-    //     state_t2.GEO_eb = state_t2.GEO_eb - DR_inv_3_3 * delta_r;
-    //     state_t2.q_ne = NED2Quart(state_t2.GEO_eb);
+        state_t2.GEO_eb = state_t2.GEO_eb - DR_inv_3_3 * delta_r;
+        state_t2.q_ne = NED2Quart(state_t2.GEO_eb);
 
-    //     kal_mat_t2.x_21_1.block<3, 1>(0, 0).setZero();
-    // }
+        kal_mat_t2.x_21_1.block<3, 1>(0, 0).setZero();
+    }
     // void intergrated::VelErrorFeedback()
     // {
     //     Eigen::Vector3d delta_v;
@@ -255,34 +259,35 @@ namespace INS
         // 反馈后清零
         kal_mat_t2.x_21_1.block<3, 1>(6, 0).setZero();
     }
-    void intergrated::PosErrorFeedback()
-    {
-        Eigen::Vector3d delta_theta;
-        Eigen::Quaterniond q_nc;
-        double R_M;
-        double R_N;
-        double latitude_fix;
-        double longitude_fix;
-        double height_fix;
-        R_M = getRM(state_t2.GEO_eb(Latitude));
-        R_N = getRN(state_t2.GEO_eb(Latitude));
-        // Eun-Hwan. 式(2.35)
-        delta_theta << kal_mat_t2.x_21_1(1, 0) / (R_N + state_t2.GEO_eb(Height)),
-            -kal_mat_t2.x_21_1(0, 0) / (R_M + state_t2.GEO_eb(Height)),
-            -kal_mat_t2.x_21_1(1, 0) * tan(state_t2.GEO_eb(Latitude)) / (R_N + state_t2.GEO_eb(Height));
-        q_nc = SpinVector2Quart(delta_theta).conjugate();// Eun-Hwan. 式(3.80b)
-        state_t2.q_ne = state_t2.q_ne * q_nc;// Eun-Hwan. 式(3.80a)
-        Quart2GEO(state_t2.q_ne, &latitude_fix, &longitude_fix);
-        height_fix = state_t2.GEO_eb(Height) + kal_mat_t2.x_21_1(2, 0);
-        state_t2.GEO_eb << latitude_fix, longitude_fix, height_fix;
+    // void intergrated::PosErrorFeedback()
+    // {
+    //     Eigen::Vector3d delta_theta;
+    //     Eigen::Quaterniond q_nc;
+    //     double R_M;
+    //     double R_N;
+    //     double latitude_fix;
+    //     double longitude_fix;
+    //     double height_fix;
+    //     R_M = getRM(state_t2.GEO_eb(Latitude));
+    //     R_N = getRN(state_t2.GEO_eb(Latitude));
+    //     // Eun-Hwan. 式(2.35)
+    //     delta_theta << kal_mat_t2.x_21_1(1, 0) / (R_N + state_t2.GEO_eb(Height)),
+    //         -kal_mat_t2.x_21_1(0, 0) / (R_M + state_t2.GEO_eb(Height)),
+    //         -kal_mat_t2.x_21_1(1, 0) * tan(state_t2.GEO_eb(Latitude)) / (R_N + state_t2.GEO_eb(Height));
+    //     q_nc = SpinVector2Quart(delta_theta).conjugate();// Eun-Hwan. 式(3.80b)
+    //     state_t2.q_ne = state_t2.q_ne * q_nc;// Eun-Hwan. 式(3.80a)
+    //     Quart2GEO(state_t2.q_ne, &latitude_fix, &longitude_fix);
+    //     height_fix = state_t2.GEO_eb(Height) + kal_mat_t2.x_21_1(2, 0);
+    //     state_t2.GEO_eb << latitude_fix, longitude_fix, height_fix;
 
-        kal_mat_t2.x_21_1.block<3, 1>(0, 0).setZero();
-    }
+    //     kal_mat_t2.x_21_1.block<3, 1>(0, 0).setZero();
+    // }
     void intergrated::VelErrorFeedback()
     {
-        Eigen::Vector3d delta_v;
-        delta_v = kal_mat_t2.x_21_1.block<3, 1>(3, 0);
-        state_t2.NED_vec = state_t2.NED_vec - delta_v;
+        Eigen::Vector3d v_temp;
+        v_temp = kal_mat_t2.x_21_1.block<3, 1>(3, 0);
+        state_t2.NED_vec = state_t2.NED_vec - v_temp;
+        //delta_v = delta_v - v_temp;
         kal_mat_t2.x_21_1.block<3, 1>(3, 0).setZero();
     }
     void intergrated::IMUErrorFeedback()
@@ -299,10 +304,16 @@ namespace INS
         as_3_1 = kal_mat_t2.x_21_1.block<3, 1>(18, 0);
 
         I_3_1.setOnes();
-        imu_parameter.g_b = imu_parameter.g_b + ((I_3_1 + imu_parameter.g_b).array() * gb_3_1.array()).matrix();
-        imu_parameter.a_b = imu_parameter.a_b + ((I_3_1 + imu_parameter.a_b).array() * ab_3_1.array()).matrix();
-        imu_parameter.g_s = ((I_3_1 + imu_parameter.g_s).array() * (I_3_1 + gs_3_1).array()).matrix() - I_3_1;
-        imu_parameter.a_s = ((I_3_1 + imu_parameter.a_s).array() * (I_3_1 + as_3_1).array()).matrix() - I_3_1;
+        // imu_parameter.g_b = imu_parameter.g_b + ((I_3_1 + imu_parameter.g_b).array() * gb_3_1.array()).matrix();
+        // imu_parameter.a_b = imu_parameter.a_b + ((I_3_1 + imu_parameter.a_b).array() * ab_3_1.array()).matrix();
+        // imu_parameter.g_s = ((I_3_1 + imu_parameter.g_s).array() * (I_3_1 + gs_3_1).array()).matrix() - I_3_1;
+        // imu_parameter.a_s = ((I_3_1 + imu_parameter.a_s).array() * (I_3_1 + as_3_1).array()).matrix() - I_3_1;
+
+        imu_parameter.g_b += gb_3_1;
+        imu_parameter.a_b += ab_3_1;
+        imu_parameter.g_s += gs_3_1;
+        imu_parameter.a_s += as_3_1;
+
 
         kal_mat_t2.x_21_1.block<3, 1>(9, 0).setZero();
         kal_mat_t2.x_21_1.block<3, 1>(12, 0).setZero();
@@ -321,30 +332,138 @@ namespace INS
             EKFpredictUpdate();
             EKFmeasurementUpdate();
             ErrorFeedback();
+
+            imudata_t1 = imudata_t2;
+            state_t1 = state_t2;
+            kal_mat_t1 = kal_mat_t2;
         }
-        else if ((imudata.timestamp < gnssdata.timestamp) && (imudata.timestamp + 0.005 > gnssdata.timestamp))
+        else if ((imudata_t2.timestamp < gnssdata.timestamp) && (imudata.timestamp > gnssdata.timestamp))
         {
             GNSS_flag = 1;
             GNSS_data = gnssdata;
-            mechanizationinterUpdate(IMUdataFix(imudata));
-            EKFpredictUpdate();
-            kal_mat_t1 = kal_mat_t2;
-            stateExtrapolation();
+            double ratio;
+            IMU_data imudatamid;
+            ratio = (gnssdata.timestamp - imudata_t1.timestamp) / (imudata.timestamp - imudata_t1.timestamp);
+            imudatamid.timestamp = gnssdata.timestamp;
+            imudatamid.accel = ratio * imudata.accel;
+            imudatamid.gyro = ratio * imudata.gyro;
+            INS_T = imudatamid.timestamp - imudata_t2.timestamp;
+            mechanizationinterUpdate(IMUdataFix(imudatamid));
             EKFpredictUpdate();
             EKFmeasurementUpdate();
             ErrorFeedback();
+            imudata_t1 = imudata_t2;
+            state_t1 = state_t2;
+            kal_mat_t1 = kal_mat_t2;
+            imudatamid.timestamp = imudata.timestamp;
+            imudatamid.accel = (1.0 - ratio) * imudata.accel;
+            imudatamid.gyro = (1.0 - ratio) * imudata.gyro;
+            INS_T = imudatamid.timestamp - imudata_t2.timestamp;
+            mechanizationinterUpdate(IMUdataFix(imudatamid));
+            EKFpredictUpdate();
+            imudata_t1 = imudata_t2;
+            state_t1 = state_t2;
+            kal_mat_t1 = kal_mat_t2;
+
         }
-        else if (imudata.timestamp + 0.005 <= gnssdata.timestamp)
+        else
         {
             mechanizationinterUpdate(IMUdataFix(imudata));
             EKFpredictUpdate();
+            imudata_t1 = imudata_t2;
+            state_t1 = state_t2;
+            kal_mat_t1 = kal_mat_t2;
         }
-        imudata_t1 = imudata_t2;
-        state_t1 = state_t2;
-        kal_mat_t1 = kal_mat_t2;
+        // else if ((imudata.timestamp < gnssdata.timestamp) && (imudata.timestamp + 0.005 > gnssdata.timestamp))
+        // {
+        //     GNSS_flag = 1;
+        //     GNSS_data = gnssdata;
+        //     mechanizationinterUpdate(IMUdataFix(imudata));
+        //     EKFpredictUpdate();
+        //     kal_mat_t1 = kal_mat_t2;
+        //     stateExtrapolation(GNSS_data.timestamp);
+        //     EKFpredictUpdate();
+        //     EKFmeasurementUpdate();
+        //     ErrorFeedback();
+
+        //     state_t1 = state_t2;
+        //     kal_mat_t1 = kal_mat_t2;
+        // }
+        // else if (imudata.timestamp + 0.005 <= gnssdata.timestamp)
+        // {
+        //     if((imudata_t2.timestamp == gnssdata.timestamp - 1)&&(imudata.timestamp - imudata_t2.timestamp < 0.0049))
+        //     {
+        //         stateExtrapolation1(imudata);
+        //         imudata_t1 = imudata_t2;
+        //         state_t1 = state_t2;
+        //     }
+        //     else
+        //     {
+        //         mechanizationinterUpdate(IMUdataFix(imudata));
+        //         EKFpredictUpdate();
+
+        //         imudata_t1 = imudata_t2;
+        //         state_t1 = state_t2;
+        //         kal_mat_t1 = kal_mat_t2;
+        //     }
+
+        // }
+
         return GNSS_flag;
     }
-    void intergrated::stateExtrapolation()
+    void intergrated::stateExtrapolation(const double &timestamp)
+    {
+        m_State state_ext;
+        IMU_data imudata_ext;
+        IMU_data imudata_ext1;
+        double GNSS_imu_time;
+        double ratio;
+        double height_ext;
+        double latitude_ext;
+        double longitude_ext;
+        Eigen::Quaterniond q_ne_delta_theta;
+        Eigen::Quaterniond q_ne_delta_theta_ratio;
+        Vector3d ne_delta_theta;
+        Eigen::Quaterniond q_bn_delta_theta;
+        Eigen::Quaterniond q_bn_delta_theta_ratio;
+        Vector3d bn_delta_theta;
+
+        GNSS_imu_time = timestamp - imudata_t2.timestamp;
+        ratio = GNSS_imu_time / INS_T;
+        imudata_ext.timestamp = GNSS_data.timestamp;
+        imudata_ext.accel = ratio * imudata_t2.accel;
+        imudata_ext.gyro = ratio * imudata_t2.gyro;
+
+        state_ext.timestamp = GNSS_data.timestamp;
+        q_ne_delta_theta = state_t1.q_ne.inverse() * state_t2.q_ne;
+        ne_delta_theta = Quart2SpinVector(q_ne_delta_theta);
+        q_ne_delta_theta_ratio = SpinVector2Quart(ratio * ne_delta_theta);
+        state_ext.q_ne = state_t2.q_ne * q_ne_delta_theta_ratio;
+        Quart2GEO(state_ext.q_ne, &latitude_ext, &longitude_ext);
+        height_ext = state_t2.GEO_eb(Height) - state_t2.NED_vec(D) * GNSS_imu_time;
+        state_ext.GEO_eb << latitude_ext, longitude_ext, height_ext;
+        state_ext.NED_vec = state_t2.NED_vec + GNSS_imu_time * a_t2;
+        q_bn_delta_theta = state_t1.q_bn.inverse() * state_t2.q_bn;
+        bn_delta_theta = Quart2SpinVector(q_bn_delta_theta);
+        q_bn_delta_theta_ratio = SpinVector2Quart(ratio * bn_delta_theta);
+        state_ext.q_bn = state_t2.q_bn * q_bn_delta_theta_ratio;
+        state_ext.e_bn = DCM2Euler(state_ext.q_bn.toRotationMatrix());
+
+        state_t1 = state_t2;
+        imudata_t1 = imudata_t2;
+        a_t2 = (state_ext.NED_vec - state_t2.NED_vec) / (GNSS_imu_time);
+
+        state_t2 = state_ext;
+        imudata_t2 = imudata_ext;
+        INS_T = GNSS_imu_time;
+        // imudata_ext1 = imudata_t2;
+        // mechanizationinterUpdate(imudata_ext);
+        // imudata_t1 = imudata_ext1;
+        // state_t1 = state_t2;
+
+        
+    }
+    void intergrated::stateExtrapolation1(const IMU_data &imudata)
     {
         m_State state_ext;
         IMU_data imudata_ext;
@@ -360,11 +479,11 @@ namespace INS
         Eigen::Quaterniond q_bn_delta_theta_ratio;
         Vector3d bn_delta_theta;
 
-        GNSS_imu_time = GNSS_data.timestamp - imudata_t2.timestamp;
-        ratio = GNSS_imu_time / INS_T;
+        GNSS_imu_time = imudata.timestamp - imudata_t2.timestamp;
+        ratio = GNSS_imu_time / (imudata.timestamp - imudata_t1.timestamp);
         imudata_ext.timestamp = GNSS_data.timestamp;
-        imudata_ext.accel = ratio * imudata_t2.accel;
-        imudata_ext.gyro = ratio * imudata_t2.gyro;
+        imudata_ext.accel = ratio * imudata.accel;
+        imudata_ext.gyro = ratio * imudata.gyro;
 
         state_ext.timestamp = GNSS_data.timestamp;
         q_ne_delta_theta = state_t1.q_ne.inverse() * state_t2.q_ne;
@@ -374,21 +493,24 @@ namespace INS
         Quart2GEO(state_ext.q_ne, &latitude_ext, &longitude_ext);
         height_ext = state_t2.GEO_eb(Height) - state_t2.NED_vec(D) * GNSS_imu_time;
         state_ext.GEO_eb << latitude_ext, longitude_ext, height_ext;
-        state_ext.NED_vec = state_t2.NED_vec + ratio * delta_v;
+        state_ext.NED_vec = state_t2.NED_vec + GNSS_imu_time * a_t2;
         q_bn_delta_theta = state_t1.q_bn.inverse() * state_t2.q_bn;
         bn_delta_theta = Quart2SpinVector(q_bn_delta_theta);
         q_bn_delta_theta_ratio = SpinVector2Quart(ratio * bn_delta_theta);
         state_ext.q_bn = state_t2.q_bn * q_bn_delta_theta_ratio;
         state_ext.e_bn = DCM2Euler(state_ext.q_bn.toRotationMatrix());
 
-        state_t1 = state_t2;
-        imudata_t1 = imudata_t2;
-        delta_v = state_ext.NED_vec - state_t2.NED_vec;
+        // state_t1 = state_t2;
+        // imudata_t1 = imudata_t2;
+        // //delta_v = state_ext.NED_vec - state_t2.NED_vec;
 
-        state_t2 = state_ext;
-        imudata_t2 = imudata_ext;
-        INS_T = GNSS_imu_time;
-        
+        // state_t2 = state_ext;
+        // imudata_t2 = imudata;
+        // INS_T = GNSS_imu_time;
+
+        mechanizationinterUpdate(IMUdataFix(imudata_ext));
+        imudata_t1 = imudata_t2;
+        state_t1 = state_t2;
 
         
     }
@@ -396,7 +518,7 @@ namespace INS
     {
         IMU_data data_fixed;
         Eigen::Vector3d I_3_1;
-
+        INS_T = data.timestamp - imudata_t2.timestamp;
         I_3_1.setOnes();
         data_fixed.timestamp = data.timestamp;
         data_fixed.accel = (((data.accel - imu_parameter.a_b * INS_T).array()) / ((I_3_1 + imu_parameter.a_s).array())).matrix();

@@ -54,7 +54,7 @@ namespace INS {
 		state_t2.q_ne = NED2Quart(state_t2.GEO_eb);
 		state_t2.q_bn = Euler2Quart(state_t2.e_bn);
 		state_t1 = state_t2;
-		delta_v << 0.0, 0.0, 0.0;
+		a_t2 << 0.0, 0.0, 0.0;
 	}
 
 	mechanization::~mechanization()
@@ -97,6 +97,10 @@ namespace INS {
 		double height_mid;						//根据位置内插的中间时刻位置
 		double longitude_mid;					//通过四元数内插的中间时刻经度
 		double latitude_mid;					//通过四元数内插的中间时刻纬度
+		Eigen::Vector3d GEO_eb_mid;				//n系下中间时刻的位置向量坐标
+		Eigen::Vector3d NED_vec_mid;			//n系下中间时刻的速度向量坐标
+		Eigen::Vector3d omega_ie_n_mid;			//n系下中间时刻计算的ie角速度
+		Eigen::Vector3d omega_en_n_mid;			//n系下中间时刻计算的en角速度
 		Eigen::Vector3d zeta_t2;				//q_nn_t1_t2的共轭所对应的等效旋转矢量
 		Eigen::Quaterniond q_nn_t1_t2;			//tk-1到tk的n系变化四元数
 		Eigen::Vector3d phi_t2;					//q_bb_t2_t1对应的等效旋转矢量
@@ -148,6 +152,10 @@ namespace INS {
 		double h_mid;							//中间时刻高度
 		double longitude_mid;					//中间时刻经度
 		double latitude_mid;					//中间时刻纬度
+		Eigen::Vector3d NED_vec_mid;			//n系下中间时刻的速度向量坐标
+		Eigen::Vector3d GEO_eb_mid;				//n系下中间时刻的位置向量坐标
+		Eigen::Vector3d omega_ie_n_mid;			//n系下中间时刻计算的ie角速度
+		Eigen::Vector3d omega_en_n_mid;			//n系下中间时刻计算的en角速度
 
 		Eigen::Vector3d zeta_mid;
 		Eigen::Vector3d xi_mid;
@@ -190,7 +198,7 @@ namespace INS {
 		q_ne_mid_mid = q_ee_t1_mid * state_t1.q_ne * q_nn_mid_t1;//Eun-Hwan. 式(2.51a),式(2.51b)
 		Quart2GEO(q_ne_mid_mid, &latitude_mid, &longitude_mid);//计算中间时刻的经度和纬度
 		h_mid = state_t1.GEO_eb(Height) - state_t1.NED_vec(D)*INS_T*0.5;//计算中间时刻的高度
-		NED_vec_mid = state_t1.NED_vec + 0.5 * delta_v;//外推的中间时刻速度 Eun-Hwan. 式(2.52a)
+		NED_vec_mid = state_t1.NED_vec + 0.5 * INS_T * a_t2;//外推的中间时刻速度 Eun-Hwan. 式(2.52a)
 		GEO_eb_mid << latitude_mid, longitude_mid, h_mid;//将中间时刻位置保存为vector3d形式
 		// 求t=k-0.5时刻对应位置速度的ie角速度、en角速度
 		omega_ie_n_mid = Pos2AngleVelocity_ie(GEO_eb_mid);
@@ -212,7 +220,7 @@ namespace INS {
 		delta_v_gcor = (g_n_mid - (2.0 * omega_ie_n_mid + omega_en_n_mid).cross(NED_vec_mid)) * INS_T;//Eun-Hwan. 式(2.53)
 		// 速度更新 式2.47
 		//NED_vec_t1 = NED_vec;
-		delta_v = delta_v_f + delta_v_gcor;//Eun-Hwan. 式(2.52b)
+		a_t2 = (delta_v_f + delta_v_gcor) / INS_T;//Eun-Hwan. 式(2.52b)
 		state_t2.NED_vec = state_t1.NED_vec + delta_v_f + delta_v_gcor;//Eun-Hwan. 式(2.47)
 
 	}

@@ -33,8 +33,8 @@ namespace INS{
 	// 组合导航单位换算
 	const double hour = 3600.0;
 	const double sqrt_hour = 60.0;
-	const double mGal = 1E-5;
-	const double ppm = 1E-6;
+	const double mGal = 1.0E-5;
+	const double ppm = 1.0E-6;
 	// 组合导航初始化参数
 
 	// 组合导航参数

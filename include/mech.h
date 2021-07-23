@@ -61,16 +61,16 @@ namespace INS {
 		//	位置
 		//Eigen::Vector3d GEO_eb;					//位置的地理坐标b系相对于e系的向量 纬度 经度 高度
 		//Eigen::Vector3d GEO_eb_t1;				//位置的地理坐标b系相对于e系的向量 纬度 经度 高度
-		Eigen::Vector3d GEO_eb_mid;				//n系下中间时刻的位置向量坐标
+		//Eigen::Vector3d GEO_eb_mid;				//n系下中间时刻的位置向量坐标
 		//Eigen::Quaterniond q_ne_t2_t2;			//tk时刻的ne四元数
 		//Eigen::Quaterniond q_ne_t1_t1;			//tk-1时刻的ne四元数
 		// 速度
 		//Eigen::Vector3d NED_vec;				//载体相对于地球的速度在NED坐标系的投影
 		//Eigen::Vector3d NED_vec_t1;				//n系下tk-1时刻的速度向量坐标
-		Eigen::Vector3d NED_vec_mid;			//n系下中间时刻的速度向量坐标
+		//Eigen::Vector3d NED_vec_mid;			//n系下中间时刻的速度向量坐标
 		
-		Eigen::Vector3d omega_ie_n_mid;			//n系下中间时刻计算的ie角速度
-		Eigen::Vector3d omega_en_n_mid;			//n系下中间时刻计算的en角速度
+		//Eigen::Vector3d omega_ie_n_mid;			//n系下中间时刻计算的ie角速度
+		//Eigen::Vector3d omega_en_n_mid;			//n系下中间时刻计算的en角速度
 		//
 	protected:
 		m_State state_t2;
@@ -78,7 +78,7 @@ namespace INS {
 		//
 		IMU_data imudata_t1;
 		IMU_data imudata_t2;
-		Eigen::Vector3d delta_v;
+		Eigen::Vector3d a_t2;
 		//
 		double INS_T;
 	};

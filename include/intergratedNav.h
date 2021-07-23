@@ -82,7 +82,8 @@ namespace INS
         void IMUErrorFeedback();            // IMU标定参数误差反馈
 
         int IntergtatedNavUpdate(const IMU_data &imudata, const GNSS_data_T &gnssdata); // 组合导航更新总函数
-        void stateExtrapolation();          // 位置外推
+        void stateExtrapolation(const double &timestamp);          // 位置外推
+        void stateExtrapolation1(const IMU_data &imudata);
 
         IMU_data IMUdataFix(const IMU_data &data);  // IMU预处理
     };
